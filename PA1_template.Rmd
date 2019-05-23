@@ -1,25 +1,108 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Coursera Repro Res Wk2 Project"
+author: "Nick Paschalidis"
+date: "22/5/2019"
+output: html_document
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = FALSE)
+```
 
-## Loading and preprocessing the data
+## 1. Loading and the data
+
+Code to download, unzip and read the data.
+A master file called `rawdata` is created containing all the activity data
+
+```{r load data}
+download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip", destfile = "rawdata_activity.zip")
+
+unzip("rawdata_activity.zip")
+
+rawdata <-read.csv("activity.csv", header=TRUE)
+```
+
+## 2. What is mean total number of steps taken per day?
+
+Code to calculate  mean total number of steps per day and plot.
+
+```{r mean average daily steps} 
+Sortbydate <- tapply(rawdata$steps, rawdata$date, sum)
+hist(Sortbydate, xlab ="no. of steps", main="Daily steps", breaks = 30)
+mean(Sortbydate, na.rm = TRUE)
+median(Sortbydate, na.rm = TRUE)
+```
+
+## 3. What is average daily activity pattern?
+
+Code to calculate  average total number of steps per day and plot.
+
+```{r daily pattern}
+Interval_steps <- tapply(rawdata$steps, rawdata$interval, mean, na.rm = TRUE)
+plot(Interval_steps, xlab = "interval", ylab = "No of Steps", main = "Average total number of steps")
+```
+
+The 5-minute interval tha contains the maximum number of steps is identified 
+using the following code.
+
+```{r intervan with max activity}
+Sort_intervals <- names(sort(Interval_steps, decreasing =TRUE) [1])
+Sort_steps <- sort(Interval_steps, decreasing =TRUE) [1]
+```
+
+Interval 835 is associated with maximum activity, ~206 steps. 
+
+## 4. Imputing missing Values
+
+Calculating missing values before imputing
+```{r NAs before imputing}
+str(rawdata)
+missing_values <- sum(is.na(rawdata$steps))
+missing_values
+```
 
 
+```{r imputing NAs}
+Interval_steps <- tapply(rawdata$steps, rawdata$interval, mean, na.rm = TRUE)
+rawdata.split <- split(rawdata, rawdata$interval)
+for(i in 1:length(rawdata.split)){
+  rawdata.split[[i]]$steps[is.na(rawdata.split[[i]]$steps)] <- Interval_steps[i]
+}
+rawdata2 <- do.call("rbind", rawdata.split)
+rawdata2 <- rawdata2[order(rawdata2$date) ,]
+```
 
-## What is mean total number of steps taken per day?
+Missing values after imputing
+ 
+```{r NAs after imputing}
+missing_values <- sum(is.na(rawdata2$steps))
+str(rawdata2)
+missing_values
+```
 
 
+## 5. Are there differences in activity patterns between weekdays and weekends?
 
-## What is the average daily activity pattern?
+Code to compute and present activity pattern for weekends and weekdays
 
+```{r}
+rawdata2$day <- ifelse(weekdays(as.Date(rawdata2$date)) == "Saturday" | weekdays(as.Date(rawdata2$date)) == "Sunday", "weekend", "weekday")
 
+# Average steps per interval for weekends and weekdays
+Interval_steps_wkend <- tapply(rawdata2[rawdata2$day == "weekend" ,]$steps, rawdata2[rawdata2$day == "weekend" ,]$interval, mean,na.rm=TRUE)
+Interval_steps_wkdays <- tapply(rawdata2[rawdata2$day == "weekday" ,]$steps, rawdata2[rawdata2$day == "weekday" ,]$interval, mean, na.rm=TRUE)
 
-## Imputing missing values
+# Plot Weekday and weekend activity
+par(mfrow=c(1,2))
+plot(as.numeric(names(Interval_steps_wkdays)), 
+     Interval_steps_wkdays, 
+     xlab = "Interval", 
+     ylab = "No. of Steps", 
+     main = "Week day activity")
+plot(as.numeric(names(Interval_steps_wkdays)), 
+     Interval_steps_wkdays, 
+     xlab = "Interval", 
+     ylab = "No of. Steps", 
+     main = "Weekend activity")
+```
 
-
-
-## Are there differences in activity patterns between weekdays and weekends?
